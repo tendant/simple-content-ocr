@@ -2,7 +2,7 @@
 
 import base64
 import io
-from typing import BinaryIO, List, Optional
+from typing import Any, BinaryIO, List, Optional
 
 import structlog
 from PIL import Image
@@ -15,7 +15,7 @@ logger = structlog.get_logger(__name__)
 class DeepSeekOCREngine(BaseOCREngine):
     """DeepSeek OCR engine using vLLM for high-performance inference."""
 
-    def __init__(self, config: dict[str, any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         Initialize the DeepSeek OCR engine.
 

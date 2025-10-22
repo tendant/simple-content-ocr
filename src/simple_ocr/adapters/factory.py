@@ -1,6 +1,6 @@
 """Factory for creating OCR engine instances."""
 
-from typing import Dict
+from typing import Any, Dict
 
 import structlog
 
@@ -22,7 +22,7 @@ class OCREngineFactory:
     }
 
     @classmethod
-    def create(cls, engine_type: str, config: dict[str, any]) -> BaseOCREngine:
+    def create(cls, engine_type: str, config: dict[str, Any]) -> BaseOCREngine:
         """
         Create an OCR engine instance.
 

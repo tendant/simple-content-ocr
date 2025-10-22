@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -9,6 +10,39 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from simple_ocr import __version__
 from simple_ocr.config import get_settings
+from simple_ocr.routes import ocr_router
+
+
+def configure_logging(log_level: str) -> None:
+    """
+    Configure structured logging.
+
+    Args:
+        log_level: Logging level (DEBUG, INFO, WARNING, ERROR).
+    """
+    log_level_map = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+    }
+
+    level = log_level_map.get(log_level.upper(), logging.INFO)
+
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.add_log_level,
+            structlog.processors.StackInfoRenderer(),
+            structlog.dev.set_exc_info,
+            structlog.processors.JSONRenderer(),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(level),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+
 
 logger = structlog.get_logger()
 
@@ -17,13 +51,20 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifespan events."""
     settings = get_settings()
+
+    # Configure logging
+    configure_logging(settings.log_level)
+
     logger.info(
         "starting_application",
         app_name=settings.app_name,
         version=__version__,
         environment=settings.environment,
+        ocr_engine=settings.ocr_engine,
     )
+
     yield
+
     logger.info("shutting_down_application")
 
 
@@ -34,8 +75,10 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=__version__,
-        description="AI-powered document OCR service",
+        description="AI-powered document OCR service that converts documents to markdown",
         lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
     )
 
     # Add CORS middleware
@@ -47,11 +90,18 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Health check endpoint
+    # Include routers
+    app.include_router(ocr_router)
+
+    # Root endpoints
     @app.get("/health")
     async def health_check() -> dict[str, str]:
         """Health check endpoint."""
-        return {"status": "healthy", "version": __version__}
+        return {
+            "status": "healthy",
+            "version": __version__,
+            "service": settings.app_name,
+        }
 
     @app.get("/")
     async def root() -> dict[str, str]:
@@ -60,7 +110,13 @@ def create_app() -> FastAPI:
             "service": settings.app_name,
             "version": __version__,
             "status": "running",
+            "docs": "/docs",
         }
+
+    logger.info(
+        "application_created",
+        routes_count=len(app.routes),
+    )
 
     return app
 

@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import UTC, datetime
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from simple_ocr.adapters.base import BaseOCREngine, OCRError, OCRResponse
 
@@ -10,7 +10,7 @@ from simple_ocr.adapters.base import BaseOCREngine, OCRError, OCRResponse
 class MockOCREngine(BaseOCREngine):
     """Mock OCR engine that returns simulated results without actual processing."""
 
-    def __init__(self, config: dict[str, any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         Initialize the mock OCR engine.
 

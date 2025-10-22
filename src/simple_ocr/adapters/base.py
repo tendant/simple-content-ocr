@@ -1,7 +1,7 @@
 """Base OCR engine interface."""
 
 from abc import ABC, abstractmethod
-from typing import BinaryIO, Optional
+from typing import Any, BinaryIO, Optional
 
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ class OCRResponse(BaseModel):
 class BaseOCREngine(ABC):
     """Abstract base class for OCR engines."""
 
-    def __init__(self, config: dict[str, any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         Initialize the OCR engine.
 
@@ -83,11 +83,11 @@ class BaseOCREngine(ABC):
         """Async context manager entry."""
         return self
 
-    def __exit__(self, exc_type: any, exc_val: any, exc_tb: any) -> None:
+    def __exit__(self, exc_type: any, exc_val: any, exc_tb: Any) -> None:
         """Context manager exit."""
         pass
 
-    async def __aexit__(self, exc_type: any, exc_val: any, exc_tb: any) -> None:
+    async def __aexit__(self, exc_type: any, exc_val: any, exc_tb: Any) -> None:
         """Async context manager exit."""
         await self.cleanup()
 
