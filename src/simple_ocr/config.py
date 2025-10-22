@@ -38,6 +38,8 @@ class Settings(BaseSettings):
         default="/models/deepseek-ocr",
         description="Local model path",
     )
+
+    # vLLM Configuration (local)
     vllm_gpu_memory_utilization: float = Field(
         default=0.9,
         description="GPU memory utilization ratio",
@@ -49,6 +51,20 @@ class Settings(BaseSettings):
     vllm_tensor_parallel_size: int = Field(
         default=1,
         description="Tensor parallel size for vLLM",
+    )
+
+    # vLLM Remote Configuration
+    vllm_url: str = Field(
+        default="http://localhost:8000",
+        description="Remote vLLM server URL",
+    )
+    vllm_api_key: str = Field(
+        default="",
+        description="API key for remote vLLM server (optional)",
+    )
+    vllm_timeout: int = Field(
+        default=120,
+        description="Timeout for vLLM API calls in seconds",
     )
 
     # NATS Configuration

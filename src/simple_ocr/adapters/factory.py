@@ -7,6 +7,7 @@ import structlog
 from simple_ocr.adapters.base import BaseOCREngine
 from simple_ocr.adapters.deepseek_engine import DeepSeekOCREngine
 from simple_ocr.adapters.mock_engine import MockOCREngine
+from simple_ocr.adapters.vllm_remote_engine import VLLMRemoteEngine
 from simple_ocr.config import Settings
 
 logger = structlog.get_logger(__name__)
@@ -19,6 +20,7 @@ class OCREngineFactory:
     _engines: Dict[str, type[BaseOCREngine]] = {
         "mock": MockOCREngine,
         "deepseek": DeepSeekOCREngine,
+        "vllm": VLLMRemoteEngine,
     }
 
     @classmethod
@@ -81,6 +83,16 @@ class OCREngineFactory:
                 {
                     "delay_ms": 100,  # Small delay to simulate processing
                     "fail_rate": 0.0,  # No failures by default
+                }
+            )
+
+        # Add remote vLLM configuration
+        elif engine_type == "vllm":
+            config.update(
+                {
+                    "vllm_url": getattr(settings, "vllm_url", "http://localhost:8000"),
+                    "api_key": getattr(settings, "vllm_api_key", None),
+                    "timeout": getattr(settings, "vllm_timeout", 120),
                 }
             )
 
