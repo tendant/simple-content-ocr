@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # NATS JetStream for job queue
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats-data:/data
+
+  # Simple Content API (mock for development)
+  # Replace with actual simple-content service URL in production
+  content-api:
+    image: tendant/simple-content:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/content
+    depends_on:
+      - db
+
+  # PostgreSQL for simple-content
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=content
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # OCR Worker
+  ocr-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uv", "run", "python", "-m", "simple_ocr.workers.nats_worker"]
+    environment:
+      - NATS_URL=nats://nats:4222
+      - CONTENT_API_URL=http://content-api:8080
+      - OCR_ENGINE=mock  # Use 'deepseek' with GPU
+      - LOG_LEVEL=INFO
+    depends_on:
+      - nats
+      - content-api
+    volumes:
+      - ./src:/app/src
+      - models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # OCR API (optional, for direct HTTP access)
+  ocr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - CONTENT_API_URL=http://content-api:8080
+      - OCR_ENGINE=mock
+      - LOG_LEVEL=INFO
+    depends_on:
+      - nats
+      - content-api
+    volumes:
+      - ./src:/app/src
+      - models:/models
+
+volumes:
+  nats-data:
+  postgres-data:
+  models:
