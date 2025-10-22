@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     workers: int = Field(default=1, description="Number of worker processes")
 
     # OCR Engine Configuration
-    ocr_engine: str = Field(default="deepseek", description="OCR engine to use")
+    ocr_engine: str = Field(default="mock", description="OCR engine to use")
     model_name: str = Field(
         default="deepseek-ai/deepseek-ocr",
         description="Model name or path",
