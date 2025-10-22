@@ -208,3 +208,17 @@ __marimo__/
 
 
 .claude/
+
+# Project specific
+/models/
+/tmp/
+/temp/
+*.log
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
