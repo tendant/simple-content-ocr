@@ -115,14 +115,47 @@ curl http://localhost:8000/v1/models
 podman logs -f paddleocr-vl  # or docker logs -f paddleocr-vl
 ```
 
+### Alternative: Custom Server for Older GPUs
+
+**⚠️ If vLLM fails with FlashAttention errors**, use the custom server instead:
+
+The custom server is a lightweight Python-based alternative that:
+- ✅ Works with GTX 1000/RTX 2000 series (compute capability 6.x/7.x)
+- ✅ OpenAI-compatible API (drop-in replacement)
+- ✅ Easier to debug and troubleshoot
+- ✅ Lower memory footprint
+
+**Quick start with custom server:**
+
+```bash
+# Install dependencies
+pip install -r requirements-server.txt
+
+# Start server (port 8001)
+python scripts/run_paddleocr_server.py
+
+# Or use Docker
+docker build -f Dockerfile.paddleocr -t paddleocr-server .
+docker run --gpus all -p 8001:8001 paddleocr-server
+```
+
+See `CUSTOM_SERVER_SETUP.md` for complete documentation.
+
 **Configure OCR service:**
 
 ```bash
-# Update .env or export
+# For vLLM server (port 8000)
 export OCR_ENGINE=vllm
 export VLLM_URL=http://localhost:8000
 export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
+
+# For custom server (port 8001)
+export OCR_ENGINE=vllm
+export VLLM_URL=http://localhost:8001
+export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 ```
+
+Note: Both servers use the same OCR engine setting (`vllm`) because they're OpenAI-compatible.
 
 **Test it:**
 

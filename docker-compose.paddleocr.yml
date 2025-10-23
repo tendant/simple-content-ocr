@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # PaddleOCR-VL custom inference server
+  paddleocr-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.paddleocr
+    image: paddleocr-server:latest
+    container_name: paddleocr-server
+    ports:
+      - "8001:8001"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # OCR service (optional - connects to paddleocr-server)
+  ocr-api:
+    build: .
+    container_name: simple-ocr-api
+    depends_on:
+      paddleocr-server:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - OCR_ENGINE=vllm
+      - VLLM_URL=http://paddleocr-server:8001
+      - MODEL_NAME=PaddlePaddle/PaddleOCR-VL
+      - CONTENT_API_URL=http://simple-content:8080
+      - NATS_URL=nats://nats:4222
+    restart: unless-stopped
+
+  # OCR workers (optional)
+  ocr-worker:
+    build: .
+    command: python -m simple_ocr.workers.nats_worker
+    depends_on:
+      paddleocr-server:
+        condition: service_healthy
+    environment:
+      - OCR_ENGINE=vllm
+      - VLLM_URL=http://paddleocr-server:8001
+      - MODEL_NAME=PaddlePaddle/PaddleOCR-VL
+      - CONTENT_API_URL=http://simple-content:8080
+      - NATS_URL=nats://nats:4222
+    deploy:
+      replicas: 2
+    restart: unless-stopped
+
+networks:
+  default:
+    name: simple-ocr-network

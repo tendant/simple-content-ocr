@@ -1,0 +1,36 @@
+# Dockerfile for PaddleOCR-VL Custom Server
+# Build: docker build -f Dockerfile.paddleocr -t paddleocr-server .
+# Run: docker run --gpus all -p 8001:8001 paddleocr-server
+
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements-server.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-server.txt
+
+# Copy server code
+COPY src/paddleocr_server ./src/paddleocr_server
+
+# Set Python path
+ENV PYTHONPATH=/app/src:${PYTHONPATH}
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Run server
+CMD ["python", "-m", "uvicorn", "paddleocr_server.server:app", "--host", "0.0.0.0", "--port", "8001"]

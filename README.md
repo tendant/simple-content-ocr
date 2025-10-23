@@ -5,18 +5,19 @@ AI-powered OCR service that converts documents (images, PDFs, office documents) 
 ## Features
 
 - **Multi-format Support**: Process images (JPG, PNG, TIFF, etc.), PDFs, and office documents (DOCX, PPTX, XLSX)
-- **AI-Powered OCR**: Uses DeepSeek-OCR or other LLM-based vision models for high-quality text extraction
+- **AI-Powered OCR**: Uses PaddleOCR-VL (recommended), Qwen2-VL, or other LLM-based vision models
 - **Markdown Output**: Preserves document structure and layout in clean markdown format
 - **Async Processing**: NATS-based worker pattern for scalable job processing
 - **Simple Content Integration**: Seamless integration with simple-content API for storage
-- **GPU Acceleration**: vLLM-powered inference for high-performance processing
+- **GPU Acceleration**: vLLM or custom server for high-performance processing
+- **Flexible Deployment**: Works with modern GPUs (vLLM) or older GPUs (custom server)
 
 ## Tech Stack
 
 - **Language**: Python 3.11+
 - **Web Framework**: FastAPI
-- **OCR Engine**: DeepSeek-OCR (LLM-based vision-language model)
-- **Inference**: vLLM for production serving
+- **OCR Engine**: PaddleOCR-VL (recommended), Qwen2-VL, or other vision-language models
+- **Inference**: vLLM (modern GPUs) or custom server (older GPUs, easier debugging)
 - **Messaging**: NATS with CloudEvents
 - **Content Management**: simple-content HTTP API
 
@@ -87,6 +88,58 @@ uv run python -m simple_ocr.workers.nats_worker
 ```bash
 uv run uvicorn simple_ocr.main:app --host 0.0.0.0 --port 8000 --reload
 # Or: make run-api
+```
+
+### Inference Server Options
+
+The OCR service requires a vision-language model inference server. Choose based on your GPU:
+
+#### Option 1: vLLM Server (Recommended for Modern GPUs)
+
+For RTX 3000/4000 series, A100, H100 (compute capability 8.0+):
+
+```bash
+# With Docker
+docker run --runtime nvidia --gpus all \
+    -p 8000:8000 \
+    vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --trust-remote-code
+
+# With Podman
+podman run --device nvidia.com/gpu=all \
+    -p 8000:8000 \
+    docker.io/vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --trust-remote-code
+```
+
+See `PADDLEOCR_VL_SETUP.md` for complete setup.
+
+#### Option 2: Custom Server (For Older GPUs or Easy Debugging)
+
+For GTX 1000 series, RTX 2000 series, or easier debugging:
+
+```bash
+# Install dependencies
+pip install -r requirements-server.txt
+
+# Start server
+python scripts/run_paddleocr_server.py
+
+# Or with Docker
+docker build -f Dockerfile.paddleocr -t paddleocr-server .
+docker run --gpus all -p 8001:8001 paddleocr-server
+```
+
+See `CUSTOM_SERVER_SETUP.md` for complete setup.
+
+**Configure OCR service to use inference server:**
+
+```bash
+export OCR_ENGINE=vllm
+export VLLM_URL=http://localhost:8000  # or 8001 for custom server
+export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 ```
 
 ## Development

@@ -1,0 +1,20 @@
+# PaddleOCR-VL Custom Server Dependencies
+# Install with: pip install -r requirements-server.txt
+
+# Core dependencies
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0
+python-multipart>=0.0.9
+
+# ML/AI dependencies
+torch>=2.0.0
+transformers>=4.45.0
+Pillow>=10.0.0
+accelerate>=0.33.0
+
+# Optional: for URL image loading
+requests>=2.32.0
+
+# Optional: for better performance
+xformers>=0.0.27  # For older GPUs without FlashAttention support
