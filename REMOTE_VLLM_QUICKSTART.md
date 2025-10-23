@@ -15,13 +15,24 @@ The **recommended way** to use vision models for OCR is with a remote vLLM serve
 
 ### Step 1: Start vLLM Server (on GPU machine)
 
+**Recommended: Use PaddleOCR-VL (optimized for OCR, only 4-8GB VRAM)**
+
 ```bash
+# With Docker
 docker run --runtime nvidia --gpus all \
     -v ~/.cache/huggingface:/root/.cache/huggingface \
     -p 8000:8000 \
     --ipc=host \
     vllm/vllm-openai:latest \
-    --model Qwen/Qwen2-VL-7B-Instruct \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --trust-remote-code
+
+# With Podman
+podman run --device nvidia.com/gpu=all \
+    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
+    -p 8000:8000 \
+    docker.io/vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
     --trust-remote-code
 ```
 
@@ -29,6 +40,8 @@ docker run --runtime nvidia --gpus all \
 ```bash
 curl http://localhost:8000/v1/models
 ```
+
+See `PADDLEOCR_VL_SETUP.md` for detailed setup and other model options.
 
 ### Step 2: Configure OCR Service
 
@@ -42,7 +55,7 @@ OCR_ENGINE=vllm
 VLLM_URL=http://your-vllm-server:8000
 
 # Model name (must match what vLLM is serving)
-MODEL_NAME=Qwen/Qwen2-VL-7B-Instruct
+MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 
 # Optional: timeout
 VLLM_TIMEOUT=120
@@ -132,26 +145,29 @@ docker compose up -d
 
 | Model | VRAM | Quality | Speed | Command |
 |-------|------|---------|-------|---------|
-| **Qwen2-VL-7B** | 16GB | ⭐⭐⭐⭐⭐ | Fast | `--model Qwen/Qwen2-VL-7B-Instruct` |
-| Qwen2-VL-2B | 8GB | ⭐⭐⭐⭐ | Very Fast | `--model Qwen/Qwen2-VL-2B-Instruct` |
-| InternVL2-8B | 20GB | ⭐⭐⭐⭐⭐ | Fast | `--model OpenGVLab/InternVL2-8B` |
-| LLaVA-v1.6-7B | 16GB | ⭐⭐⭐⭐ | Fast | `--model liuhaotian/llava-v1.6-vicuna-7b` |
+| **PaddleOCR-VL** ⭐ | 4-8GB | ⭐⭐⭐⭐⭐ | ⚡⚡⚡ | `--model PaddlePaddle/PaddleOCR-VL` |
+| Qwen2-VL-2B | 8GB | ⭐⭐⭐⭐ | ⚡⚡ | `--model Qwen/Qwen2-VL-2B-Instruct` |
+| Qwen2-VL-7B | 16GB | ⭐⭐⭐⭐⭐ | ⚡ | `--model Qwen/Qwen2-VL-7B-Instruct` |
+| InternVL2-8B | 20GB | ⭐⭐⭐⭐⭐ | ⚡ | `--model OpenGVLab/InternVL2-8B` |
+
+**⭐ PaddleOCR-VL is recommended** - purpose-built for OCR, supports 109 languages, smallest VRAM footprint.
+See `PADDLEOCR_VL_SETUP.md` for detailed setup guide.
 
 ## Common Scenarios
 
 ### Local Development
 
 ```bash
-# Terminal 1: Start vLLM locally
+# Terminal 1: Start vLLM locally with PaddleOCR-VL
 docker run --runtime nvidia --gpus all -p 8000:8000 \
   vllm/vllm-openai:latest \
-  --model Qwen/Qwen2-VL-2B-Instruct \
+  --model PaddlePaddle/PaddleOCR-VL \
   --trust-remote-code
 
 # Terminal 2: Configure OCR
 export OCR_ENGINE=vllm
 export VLLM_URL=http://localhost:8000
-export MODEL_NAME=Qwen/Qwen2-VL-2B-Instruct
+export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 
 # Terminal 2: Test
 uv run python examples/test_local_file.py image.png --engine vllm

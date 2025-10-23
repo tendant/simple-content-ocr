@@ -22,6 +22,8 @@ podman run --rm --device nvidia.com/gpu=all ubuntu nvidia-smi
 
 ### Step 2: Run vLLM with Podman (Correct Command)
 
+**Recommended: Use PaddleOCR-VL (optimized for OCR, only 4-8GB VRAM)**
+
 ```bash
 mkdir -p ~/.cache/huggingface
 
@@ -30,13 +32,15 @@ podman run -d \
     --security-opt=label=disable \
     -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
     -p 8000:8000 \
-    --name vllm-server \
+    --name paddleocr-vl \
     docker.io/vllm/vllm-openai:latest \
-    --model deepseek-ai/DeepSeek-OCR \
+    --model PaddlePaddle/PaddleOCR-VL \
     --host 0.0.0.0 \
     --port 8000 \
     --trust-remote-code
 ```
+
+See `PADDLEOCR_VL_SETUP.md` for detailed configuration and other model options.
 
 **Key changes from Docker:**
 - ✅ `--device nvidia.com/gpu=all` (instead of `--runtime nvidia --gpus all`)
@@ -67,7 +71,7 @@ podman logs -f vllm-server
 # In .env or export
 export OCR_ENGINE=vllm
 export VLLM_URL=http://localhost:8000
-export MODEL_NAME=Qwen/Qwen2-VL-7B-Instruct
+export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 
 # Test it
 uv run python examples/test_local_file.py test_document.png --engine vllm
@@ -86,9 +90,9 @@ podman run -d \
     --security-opt=label=disable \
     -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
     -p 8000:8000 \
-    --name vllm-server \
+    --name paddleocr-vl \
     docker.io/vllm/vllm-openai:latest \
-    --model Qwen/Qwen2-VL-7B-Instruct \
+    --model PaddlePaddle/PaddleOCR-VL \
     --host 0.0.0.0 \
     --port 8000 \
     --trust-remote-code
@@ -141,22 +145,22 @@ podman run -v ~/.cache:/cache:Z ...
 
 ```bash
 # Start
-podman start vllm-server
+podman start paddleocr-vl
 
 # Stop
-podman stop vllm-server
+podman stop paddleocr-vl
 
 # Logs
-podman logs -f vllm-server
+podman logs -f paddleocr-vl
 
 # Shell
-podman exec -it vllm-server /bin/bash
+podman exec -it paddleocr-vl /bin/bash
 
 # GPU check
-podman exec vllm-server nvidia-smi
+podman exec paddleocr-vl nvidia-smi
 
 # Remove
-podman rm -f vllm-server
+podman rm -f paddleocr-vl
 ```
 
 ## Full Documentation
