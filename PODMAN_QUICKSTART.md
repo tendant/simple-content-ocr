@@ -23,6 +23,8 @@ podman run --rm --device nvidia.com/gpu=all ubuntu nvidia-smi
 ### Step 2: Run vLLM with Podman (Correct Command)
 
 ```bash
+mkdir -p ~/.cache/huggingface
+
 podman run -d \
     --device nvidia.com/gpu=all \
     --security-opt=label=disable \
@@ -30,7 +32,7 @@ podman run -d \
     -p 8000:8000 \
     --name vllm-server \
     docker.io/vllm/vllm-openai:latest \
-    --model Qwen/Qwen2-VL-7B-Instruct \
+    --model deepseek-ai/DeepSeek-OCR \
     --host 0.0.0.0 \
     --port 8000 \
     --trust-remote-code

@@ -1,11 +1,32 @@
 # Install NVIDIA Container Toolkit for Podman
 
+> **Note for Ubuntu 24.04 users**: Use the **Recommended Method** in the Ubuntu/Debian section below. The dynamic repository detection may not work on newer Ubuntu versions.
+
 ## Quick Install (Choose Your OS)
 
 ### Ubuntu/Debian
 
+**Recommended Method (Works on all versions including Ubuntu 24.04):**
+
 ```bash
-# 1. Add NVIDIA repository
+# 1. Add NVIDIA GPG key
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+# 2. Add repository manually
+echo "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/amd64 /" | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# 3. Update and install
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+
+# 4. Verify installation
+nvidia-ctk --version
+```
+
+**Alternative Method (Dynamic repository detection):**
+
+```bash
+# 1. Add NVIDIA repository (may not work on newer Ubuntu versions)
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
@@ -81,17 +102,10 @@ sudo dpkg -i nvidia-container-toolkit.deb
 
 ### Repository not found
 
-Try the manual repo setup:
+If you used the dynamic method and got an error, use the **Recommended Method** above (manual repository setup). This works on all Ubuntu/Debian versions including Ubuntu 24.04.
 
-**Ubuntu/Debian:**
-```bash
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/amd64 /" | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
-```
+For **RHEL/Fedora**, try manual repo setup:
 
-**RHEL/Fedora:**
 ```bash
 sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo <<EOF
 [nvidia-container-toolkit]
