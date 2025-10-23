@@ -17,6 +17,8 @@ The **recommended way** to use vision models for OCR is with a remote vLLM serve
 
 **Recommended: Use PaddleOCR-VL (optimized for OCR, only 4-8GB VRAM)**
 
+#### For Modern GPUs (RTX 3000/4000, A100, H100)
+
 ```bash
 # With Docker
 docker run --runtime nvidia --gpus all \
@@ -34,6 +36,33 @@ podman run --device nvidia.com/gpu=all \
     docker.io/vllm/vllm-openai:latest \
     --model PaddlePaddle/PaddleOCR-VL \
     --trust-remote-code
+```
+
+#### For Older GPUs (GTX 1000, RTX 2000 series)
+
+```bash
+# With Docker
+docker run --runtime nvidia --gpus all \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -p 8000:8000 \
+    --ipc=host \
+    -e VLLM_ATTENTION_BACKEND=XFORMERS \
+    vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --trust-remote-code \
+    --dtype float16 \
+    --max-model-len 4096
+
+# With Podman
+podman run --device nvidia.com/gpu=all \
+    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
+    -p 8000:8000 \
+    -e VLLM_ATTENTION_BACKEND=XFORMERS \
+    docker.io/vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --trust-remote-code \
+    --dtype float16 \
+    --max-model-len 4096
 ```
 
 **Verify it's running:**

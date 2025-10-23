@@ -20,6 +20,8 @@ PaddleOCR-VL is **the best model for OCR tasks** in this project:
 
 **Start vLLM server with PaddleOCR-VL:**
 
+#### For Modern GPUs (Compute Capability 8.0+: RTX 3000/4000, A100, H100)
+
 ```bash
 # With Podman (GPU via CDI)
 podman run -d \
@@ -46,6 +48,58 @@ docker run -d \
     --host 0.0.0.0 \
     --port 8000 \
     --trust-remote-code
+```
+
+#### For Older GPUs (Compute Capability 6.x-7.x: GTX 1000, RTX 2000, Tesla P/V series)
+
+**Important**: Older GPUs don't support FlashAttention. Use xformers backend instead:
+
+```bash
+# With Podman (GPU via CDI)
+podman run -d \
+    --device nvidia.com/gpu=all \
+    --security-opt=label=disable \
+    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
+    -p 8000:8000 \
+    --name paddleocr-vl \
+    -e VLLM_ATTENTION_BACKEND=XFORMERS \
+    docker.io/vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --trust-remote-code \
+    --dtype float16 \
+    --max-model-len 4096
+
+# With Docker
+docker run -d \
+    --runtime nvidia \
+    --gpus all \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -p 8000:8000 \
+    --name paddleocr-vl \
+    -e VLLM_ATTENTION_BACKEND=XFORMERS \
+    vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --trust-remote-code \
+    --dtype float16 \
+    --max-model-len 4096
+```
+
+**GPU Compatibility Check:**
+
+```bash
+# Check your GPU compute capability
+nvidia-smi --query-gpu=name,compute_cap --format=csv
+
+# Common GPUs:
+# - GTX 1070/1080 Ti: 6.1 → Use XFORMERS backend
+# - RTX 2060/2070/2080: 7.5 → Use XFORMERS backend
+# - RTX 3060/3070/3080/3090: 8.6 → Use default (FlashAttention)
+# - RTX 4060/4070/4080/4090: 8.9 → Use default (FlashAttention)
+# - A100: 8.0 → Use default (FlashAttention)
 ```
 
 **Verify server is running:**
@@ -330,6 +384,19 @@ curl -X POST http://localhost:8080/api/v1/ocr/process \
 ```
 
 ## Troubleshooting
+
+### Error: "forward compatibility was attempted on non supported HW" or "compute capability 6.1 doesn't support FlashAttention"
+
+**Cause**: Your GPU is older (compute capability < 8.0) and doesn't support FlashAttention.
+
+**Solution**: Use the xformers backend (see "For Older GPUs" section above):
+
+```bash
+# Add these to your podman/docker run command:
+-e VLLM_ATTENTION_BACKEND=XFORMERS \
+--dtype float16 \
+--max-model-len 4096
+```
 
 ### Model download is slow
 

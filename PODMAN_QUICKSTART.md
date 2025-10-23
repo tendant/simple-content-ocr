@@ -24,6 +24,8 @@ podman run --rm --device nvidia.com/gpu=all ubuntu nvidia-smi
 
 **Recommended: Use PaddleOCR-VL (optimized for OCR, only 4-8GB VRAM)**
 
+#### For Modern GPUs (RTX 3000/4000 series, A100, H100)
+
 ```bash
 mkdir -p ~/.cache/huggingface
 
@@ -38,6 +40,29 @@ podman run -d \
     --host 0.0.0.0 \
     --port 8000 \
     --trust-remote-code
+```
+
+#### For Older GPUs (GTX 1000 series, RTX 2000 series)
+
+If you have a GTX 1070/1080 Ti or RTX 2000 series, use xformers backend:
+
+```bash
+mkdir -p ~/.cache/huggingface
+
+podman run -d \
+    --device nvidia.com/gpu=all \
+    --security-opt=label=disable \
+    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
+    -p 8000:8000 \
+    --name paddleocr-vl \
+    -e VLLM_ATTENTION_BACKEND=XFORMERS \
+    docker.io/vllm/vllm-openai:latest \
+    --model PaddlePaddle/PaddleOCR-VL \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --trust-remote-code \
+    --dtype float16 \
+    --max-model-len 4096
 ```
 
 See `PADDLEOCR_VL_SETUP.md` for detailed configuration and other model options.
