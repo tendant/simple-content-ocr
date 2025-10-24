@@ -206,7 +206,9 @@ class VLLMRemoteEngine(BaseOCREngine):
                 raise OCRError("Unexpected response format from vLLM API")
 
         except httpx.HTTPError as e:
-            logger.error("http_error", error=str(e), status=getattr(e.response, "status_code", None))
+            response = getattr(e, "response", None)
+            status_code = getattr(response, "status_code", None) if response else None
+            logger.error("http_error", error=str(e), status=status_code)
             raise OCRError(f"HTTP error calling vLLM: {str(e)}", original_error=e)
 
     def _load_image(self, image_data: BinaryIO) -> Image.Image:

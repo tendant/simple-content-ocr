@@ -104,7 +104,7 @@ async def process_local_file(
 
     Args:
         file_path: Path to local file to process.
-        engine_type: OCR engine to use (mock or deepseek).
+        engine_type: OCR engine to use (mock, deepseek, or vllm).
         output_dir: Directory to save output files.
     """
     print("=" * 60)
@@ -245,6 +245,9 @@ Examples:
   # Use DeepSeek engine (requires GPU)
   python examples/test_local_file.py document.pdf --engine deepseek
 
+  # Use vLLM engine (requires GPU)
+  python examples/test_local_file.py document.pdf --engine vllm
+
   # Save output to custom directory
   python examples/test_local_file.py image.jpg --output ./my_output
         """,
@@ -258,7 +261,7 @@ Examples:
     parser.add_argument(
         "--engine",
         "-e",
-        choices=["mock", "deepseek"],
+        choices=["mock", "deepseek", "vllm"],
         default="mock",
         help="OCR engine to use (default: mock)",
     )
