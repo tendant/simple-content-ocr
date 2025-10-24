@@ -3,7 +3,7 @@
 from typing import Optional
 
 # Default prompt for general markdown extraction
-DEFAULT_OCR_PROMPT = """Extract all text content from this image and format it as markdown.
+DEFAULT_OCR_PROMPT = """<|IMAGE_PLACEHOLDER|>Extract all text content from this image and format it as markdown.
 
 Requirements:
 - Preserve the document structure and hierarchy
@@ -17,7 +17,7 @@ Output only the markdown content without any explanation or metadata."""
 
 
 # Alternative prompts for specific document types
-RECEIPT_PROMPT = """Extract receipt information as JSON with the following structure:
+RECEIPT_PROMPT = """<|IMAGE_PLACEHOLDER|>Extract receipt information as JSON with the following structure:
 {
   "merchant": "merchant name",
   "date": "transaction date",
@@ -33,7 +33,7 @@ RECEIPT_PROMPT = """Extract receipt information as JSON with the following struc
 Only output valid JSON. If a field is not found, use empty string or 0."""
 
 
-INVOICE_PROMPT = """Extract invoice information as JSON with the following structure:
+INVOICE_PROMPT = """<|IMAGE_PLACEHOLDER|>Extract invoice information as JSON with the following structure:
 {
   "invoice_number": "",
   "date": "",
@@ -52,7 +52,7 @@ INVOICE_PROMPT = """Extract invoice information as JSON with the following struc
 Only output valid JSON. If a field is not found, use empty string or 0."""
 
 
-TABLE_PROMPT = """Extract all tables from this image as markdown tables.
+TABLE_PROMPT = """<|IMAGE_PLACEHOLDER|>Extract all tables from this image as markdown tables.
 
 Requirements:
 - Use proper markdown table syntax with | separators
@@ -64,7 +64,7 @@ Requirements:
 Output only the markdown tables without any explanation."""
 
 
-FORM_PROMPT = """Extract form fields and their values as JSON with the structure:
+FORM_PROMPT = """<|IMAGE_PLACEHOLDER|>Extract form fields and their values as JSON with the structure:
 {
   "fields": [
     {"label": "field label", "value": "field value"}

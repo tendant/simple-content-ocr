@@ -262,8 +262,8 @@ Examples:
         "--engine",
         "-e",
         choices=["mock", "deepseek", "vllm"],
-        default="mock",
-        help="OCR engine to use (default: mock)",
+        default="vllm",
+        help="OCR engine to use (default: vllm)",
     )
 
     parser.add_argument(
