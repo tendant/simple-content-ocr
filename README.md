@@ -9,15 +9,14 @@ AI-powered OCR service that converts documents (images, PDFs, office documents) 
 - **Markdown Output**: Preserves document structure and layout in clean markdown format
 - **Async Processing**: NATS-based worker pattern for scalable job processing
 - **Simple Content Integration**: Seamless integration with simple-content API for storage
-- **GPU Acceleration**: vLLM or custom server for high-performance processing
-- **Flexible Deployment**: Works with modern GPUs (vLLM) or older GPUs (custom server)
+- **GPU Acceleration**: vLLM for high-performance processing
 
 ## Tech Stack
 
 - **Language**: Python 3.11+
 - **Web Framework**: FastAPI
 - **OCR Engine**: PaddleOCR-VL (recommended), Qwen2-VL, or other vision-language models
-- **Inference**: vLLM (modern GPUs) or custom server (older GPUs, easier debugging)
+- **Inference**: vLLM for high-performance GPU acceleration
 - **Messaging**: NATS with CloudEvents
 - **Content Management**: simple-content HTTP API
 
@@ -90,13 +89,11 @@ uv run uvicorn simple_ocr.main:app --host 0.0.0.0 --port 8000 --reload
 # Or: make run-api
 ```
 
-### Inference Server Options
+### Inference Server Setup
 
-The OCR service requires a vision-language model inference server. Choose based on your GPU:
+The OCR service requires a vision-language model inference server:
 
-#### Option 1: vLLM Server (Recommended for Modern GPUs)
-
-For RTX 3000/4000 series, A100, H100 (compute capability 8.0+):
+#### vLLM Server (Recommended)
 
 ```bash
 # With Docker
@@ -116,29 +113,11 @@ podman run --device nvidia.com/gpu=all \
 
 See `PADDLEOCR_VL_SETUP.md` for complete setup.
 
-#### Option 2: Custom Server (For Older GPUs or Easy Debugging)
-
-For GTX 1000 series, RTX 2000 series, or easier debugging:
-
-```bash
-# Install dependencies
-pip install -r requirements-server.txt
-
-# Start server
-python scripts/run_paddleocr_server.py
-
-# Or with Docker
-docker build -f Dockerfile.paddleocr -t paddleocr-server .
-docker run --gpus all -p 8001:8001 paddleocr-server
-```
-
-See `CUSTOM_SERVER_SETUP.md` for complete setup.
-
 **Configure OCR service to use inference server:**
 
 ```bash
 export OCR_ENGINE=vllm
-export VLLM_URL=http://localhost:8000  # or 8001 for custom server
+export VLLM_URL=http://localhost:8000
 export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 ```
 
