@@ -91,32 +91,32 @@ uv run uvicorn simple_ocr.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Inference Server Setup
 
-The OCR service requires a vision-language model inference server:
+The OCR service requires a vision-language model inference server.
 
-#### vLLM Server (Recommended)
+#### ⚠️ Important: PaddleOCR-VL is NOT compatible with vLLM
+
+**Use the Custom PaddleOCR Server instead:**
 
 ```bash
-# With Docker
-docker run --runtime nvidia --gpus all \
-    -p 8000:8000 \
-    vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --trust-remote-code
+# Install dependencies (one-time setup)
+uv venv --python 3.12 --seed
+uv sync
 
-# With Podman
-podman run --device nvidia.com/gpu=all \
-    -p 8000:8000 \
-    docker.io/vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --trust-remote-code
+# Start the custom server (uses HuggingFace transformers with trust_remote_code=True)
+uv run python scripts/run_paddleocr_server.py --host 0.0.0.0 --port 8000
 ```
 
-See `PADDLEOCR_VL_SETUP.md` for complete setup.
+The custom server:
+- ✅ Uses regular HuggingFace `transformers` (not vLLM)
+- ✅ Provides OpenAI-compatible API
+- ✅ Works with all GPUs (~1.8GB VRAM)
 
-**Configure OCR service to use inference server:**
+See `CUSTOM_SERVER_SETUP.md` for detailed setup.
+
+**Configure OCR service to use the custom server:**
 
 ```bash
-export OCR_ENGINE=vllm
+export OCR_ENGINE=vllm  # Uses OpenAI-compatible API
 export VLLM_URL=http://localhost:8000
 export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 ```

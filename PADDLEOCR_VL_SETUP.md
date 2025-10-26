@@ -1,5 +1,17 @@
 # PaddleOCR-VL Setup Guide
 
+## ⚠️ CRITICAL: vLLM Incompatibility
+
+**PaddleOCR-VL is NOT compatible with vLLM.** You will encounter this error:
+
+```
+ValueError: There is no module or parameter named 'mlp_AR' in TransformersForCausalLM
+```
+
+**Solution:** Use the **Custom PaddleOCR Server** (see Method 1 below) which uses regular HuggingFace `transformers` with `trust_remote_code=True`.
+
+---
+
 ## Why PaddleOCR-VL?
 
 PaddleOCR-VL is **the best model for OCR tasks** in this project:
@@ -16,127 +28,44 @@ PaddleOCR-VL is **the best model for OCR tasks** in this project:
 
 ## Quick Start
 
-### Method 1: Standard vLLM Server (Recommended)
+### Method 1: Custom PaddleOCR Server (RECOMMENDED - Only Option)
 
-**Start vLLM server with PaddleOCR-VL:**
+**❌ vLLM DOES NOT WORK with PaddleOCR-VL** - Use this custom server instead:
 
-#### For Modern GPUs (Compute Capability 8.0+: RTX 3000/4000, A100, H100)
+The custom server is a Python-based alternative that:
+- ✅ **Actually works** with PaddleOCR-VL (uses HuggingFace transformers)
+- ✅ Works with ALL GPUs (no FlashAttention required)
+- ✅ OpenAI-compatible API (drop-in replacement)
+- ✅ Easier to debug and troubleshoot
+- ✅ Lower memory footprint (~1.8GB VRAM)
 
-```bash
-# With Podman (GPU via CDI)
-podman run -d \
-    --device nvidia.com/gpu=all \
-    --security-opt=label=disable \
-    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
-    -p 8000:8000 \
-    --name paddleocr-vl \
-    docker.io/vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --trust-remote-code
-
-# With Docker
-docker run -d \
-    --runtime nvidia \
-    --gpus all \
-    -v ~/.cache/huggingface:/root/.cache/huggingface \
-    -p 8000:8000 \
-    --name paddleocr-vl \
-    vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --trust-remote-code
-```
-
-#### For Older GPUs (Compute Capability 6.x-7.x: GTX 1000, RTX 2000, Tesla P/V series)
-
-**Important**: Older GPUs don't support FlashAttention. Use xformers backend instead:
+**Quick start with custom server:**
 
 ```bash
-# With Podman (GPU via CDI)
-podman run -d \
-    --device nvidia.com/gpu=all \
-    --security-opt=label=disable \
-    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
-    -p 8000:8000 \
-    --name paddleocr-vl \
-    -e VLLM_ATTENTION_BACKEND=XFORMERS \
-    docker.io/vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --trust-remote-code \
-    --dtype float16 \
-    --max-model-len 4096
+# Install dependencies (one-time setup)
+uv venv --python 3.12 --seed
+uv sync
 
-# With Docker
-docker run -d \
-    --runtime nvidia \
-    --gpus all \
-    -v ~/.cache/huggingface:/root/.cache/huggingface \
-    -p 8000:8000 \
-    --name paddleocr-vl \
-    -e VLLM_ATTENTION_BACKEND=XFORMERS \
-    vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --trust-remote-code \
-    --dtype float16 \
-    --max-model-len 4096
-```
-
-**GPU Compatibility Check:**
-
-```bash
-# Check your GPU compute capability
-nvidia-smi --query-gpu=name,compute_cap --format=csv
-
-# Common GPUs:
-# - GTX 1070/1080 Ti: 6.1 → Use XFORMERS backend
-# - RTX 2060/2070/2080: 7.5 → Use XFORMERS backend
-# - RTX 3060/3070/3080/3090: 8.6 → Use default (FlashAttention)
-# - RTX 4060/4070/4080/4090: 8.9 → Use default (FlashAttention)
-# - A100: 8.0 → Use default (FlashAttention)
+# Start server (port 8000 by default)
+uv run python scripts/run_paddleocr_server.py --host 0.0.0.0 --port 8000
 ```
 
 **Verify server is running:**
 
 ```bash
-# Check container
-podman ps  # or docker ps
+# Test health
+curl http://localhost:8000/health
 
-# Test API
+# Test models API
 curl http://localhost:8000/v1/models
 
-# View logs
-podman logs -f paddleocr-vl  # or docker logs -f paddleocr-vl
+# Check GPU usage
+nvidia-smi
 ```
 
-### Alternative: Custom Server for Older GPUs
-
-**⚠️ If vLLM fails with FlashAttention errors**, use the custom server instead:
-
-The custom server is a lightweight Python-based alternative that:
-- ✅ Works with GTX 1000/RTX 2000 series (compute capability 6.x/7.x)
-- ✅ OpenAI-compatible API (drop-in replacement)
-- ✅ Easier to debug and troubleshoot
-- ✅ Lower memory footprint
-
-**Quick start with custom server:**
-
-```bash
-# Install dependencies
-pip install -r requirements-server.txt
-
-# Start server (port 8001)
-python scripts/run_paddleocr_server.py
-
-# Or use Docker
-docker build -f Dockerfile.paddleocr -t paddleocr-server .
-docker run --gpus all -p 8001:8001 paddleocr-server
+Expected output:
+```json
+{"status":"healthy","model_loaded":true,"device":"cuda","memory_used_mb":1839.5}
 ```
 
 See `CUSTOM_SERVER_SETUP.md` for complete documentation.
@@ -144,30 +73,41 @@ See `CUSTOM_SERVER_SETUP.md` for complete documentation.
 **Configure OCR service:**
 
 ```bash
-# For vLLM server (port 8000)
-export OCR_ENGINE=vllm
+# In .env or export
+export OCR_ENGINE=vllm  # Custom server uses OpenAI-compatible API
 export VLLM_URL=http://localhost:8000
 export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 
-# For custom server (port 8001)
-export OCR_ENGINE=vllm
-export VLLM_URL=http://localhost:8001
-export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
-```
-
-Note: Both servers use the same OCR engine setting (`vllm`) because they're OpenAI-compatible.
-
-**Test it:**
-
-```bash
-# Create test image
-uv run python examples/create_test_image.py
-
-# Process with PaddleOCR-VL
+# Test it
 uv run python examples/test_local_file.py test_document.png --engine vllm
 ```
 
-### Method 2: PaddlePaddle Official Docker Image
+**Note:** Even though we're using the custom server (not actual vLLM), we set `OCR_ENGINE=vllm` because the custom server provides an OpenAI-compatible API identical to vLLM's interface.
+
+---
+
+### ~~Method 2: vLLM Server~~ (DOES NOT WORK)
+
+**❌ THIS METHOD DOES NOT WORK** - PaddleOCR-VL is incompatible with vLLM.
+
+You will get this error:
+```
+ValueError: There is no module or parameter named 'mlp_AR' in TransformersForCausalLM
+```
+
+~~The commands below are kept for reference only - they will NOT work:~~
+
+<details>
+<summary>❌ Non-working vLLM commands (for reference only)</summary>
+
+```bash
+# These vLLM commands DO NOT WORK - they're here for reference only
+# DO NOT RUN THESE - use the custom server above instead
+```
+
+</details>
+
+### ~~Method 3: PaddlePaddle Official Docker Image~~ (Unknown Status)
 
 PaddlePaddle provides a pre-built Docker image with vLLM server:
 

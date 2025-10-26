@@ -20,27 +20,33 @@ sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
 podman run --rm --device nvidia.com/gpu=all ubuntu nvidia-smi
 ```
 
-### Step 2: Run vLLM with Podman (Correct Command)
+### Step 2: Run PaddleOCR-VL Server
 
-**Recommended: Use PaddleOCR-VL (optimized for OCR, only 4-8GB VRAM)**
+**⚠️ IMPORTANT: PaddleOCR-VL is NOT compatible with vLLM**
 
-```bash
-mkdir -p ~/.cache/huggingface
-
-podman run -d \
-    --device nvidia.com/gpu=all \
-    --security-opt=label=disable \
-    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
-    -p 8000:8000 \
-    --name paddleocr-vl \
-    docker.io/vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --trust-remote-code
+PaddleOCR-VL has a custom architecture that vLLM doesn't support. You'll get this error with vLLM:
+```
+ValueError: There is no module or parameter named 'mlp_AR' in TransformersForCausalLM
 ```
 
-See `PADDLEOCR_VL_SETUP.md` for detailed configuration and other model options.
+**Solution: Use the Custom PaddleOCR Server (Uses HuggingFace Transformers)**
+
+```bash
+# Install dependencies (one-time setup)
+uv venv --python 3.12 --seed
+uv sync
+
+# Start the custom server (runs on port 8000)
+uv run python scripts/run_paddleocr_server.py --host 0.0.0.0 --port 8000
+```
+
+This custom server:
+- ✅ Uses regular HuggingFace `transformers` with `trust_remote_code=True`
+- ✅ Provides OpenAI-compatible API (same as vLLM)
+- ✅ Works with all GPUs (no FlashAttention requirement)
+- ✅ Only ~1.8GB VRAM for PaddleOCR-VL
+
+See `CUSTOM_SERVER_SETUP.md` for detailed configuration.
 
 **Key changes from Docker:**
 - ✅ `--device nvidia.com/gpu=all` (instead of `--runtime nvidia --gpus all`)
@@ -52,24 +58,27 @@ See `PADDLEOCR_VL_SETUP.md` for detailed configuration and other model options.
 ### Step 3: Verify It's Running
 
 ```bash
-# Check container
-podman ps
+# Test health endpoint
+curl http://localhost:8000/health
 
-# Test GPU access
-podman exec vllm-server nvidia-smi
-
-# Test vLLM API
+# Test models API
 curl http://localhost:8000/v1/models
 
-# View logs
-podman logs -f vllm-server
+# Check GPU usage
+nvidia-smi
+```
+
+Expected output:
+```json
+{"status":"healthy","model_loaded":true,"device":"cuda","memory_used_mb":1839.5}
+{"object":"list","data":[{"id":"PaddlePaddle/PaddleOCR-VL","object":"model","created":0,"owned_by":"paddleocr"}]}
 ```
 
 ## Then Configure Your OCR Service
 
 ```bash
 # In .env or export
-export OCR_ENGINE=vllm
+export OCR_ENGINE=vllm  # Custom server uses OpenAI-compatible API
 export VLLM_URL=http://localhost:8000
 export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 
@@ -77,26 +86,7 @@ export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
 uv run python examples/test_local_file.py test_document.png --engine vllm
 ```
 
-## If CDI Setup Fails
-
-Try manual device mapping:
-
-```bash
-podman run -d \
-    --device /dev/nvidia0 \
-    --device /dev/nvidiactl \
-    --device /dev/nvidia-uvm \
-    --device /dev/nvidia-uvm-tools \
-    --security-opt=label=disable \
-    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
-    -p 8000:8000 \
-    --name paddleocr-vl \
-    docker.io/vllm/vllm-openai:latest \
-    --model PaddlePaddle/PaddleOCR-VL \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --trust-remote-code
-```
+**Note:** Even though we're using the custom server (not vLLM), we still use `OCR_ENGINE=vllm` because the custom server provides an OpenAI-compatible API that's identical to vLLM's interface.
 
 ## Troubleshooting
 
