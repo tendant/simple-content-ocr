@@ -91,34 +91,54 @@ uv run uvicorn simple_ocr.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Inference Server Setup
 
-The OCR service requires a vision-language model inference server.
+The OCR service requires a vision-language model inference server running vLLM with Qwen2-VL.
 
-#### ⚠️ Important: PaddleOCR-VL is NOT compatible with vLLM
-
-**Use the Custom PaddleOCR Server instead:**
+#### vLLM with Qwen2-VL-2B-Instruct (Recommended)
 
 ```bash
-# Install dependencies (one-time setup)
-uv venv --python 3.12 --seed
-uv sync
+# With Podman
+podman run -d \
+    --device nvidia.com/gpu=all \
+    --security-opt=label=disable \
+    -v ~/.cache/huggingface:/root/.cache/huggingface:Z \
+    -p 8000:8000 \
+    --name qwen2-vl \
+    docker.io/vllm/vllm-openai:latest \
+    --model Qwen/Qwen2-VL-2B-Instruct \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --trust-remote-code \
+    --max-model-len 4096 \
+    --gpu-memory-utilization 0.9
 
-# Start the custom server (uses HuggingFace transformers with trust_remote_code=True)
-uv run python scripts/run_paddleocr_server.py --host 0.0.0.0 --port 8000
+# With Docker
+docker run -d \
+    --runtime nvidia \
+    --gpus all \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -p 8000:8000 \
+    --name qwen2-vl \
+    vllm/vllm-openai:latest \
+    --model Qwen/Qwen2-VL-2B-Instruct \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --trust-remote-code \
+    --max-model-len 4096 \
+    --gpu-memory-utilization 0.9
 ```
 
-The custom server:
-- ✅ Uses regular HuggingFace `transformers` (not vLLM)
-- ✅ Provides OpenAI-compatible API
-- ✅ Works with all GPUs (~1.8GB VRAM)
+**Why Qwen2-VL?**
+- ✅ **Works with vLLM** - No compatibility issues
+- ✅ **Excellent OCR** - Purpose-built for document understanding
+- ✅ **Fast inference** - 0.6s per image with vLLM
+- ✅ **Efficient** - Only 4-8GB VRAM for 2B model
 
-See `CUSTOM_SERVER_SETUP.md` for detailed setup.
-
-**Configure OCR service to use the custom server:**
+**Configure OCR service:**
 
 ```bash
-export OCR_ENGINE=vllm  # Uses OpenAI-compatible API
+export OCR_ENGINE=vllm
 export VLLM_URL=http://localhost:8000
-export MODEL_NAME=PaddlePaddle/PaddleOCR-VL
+export MODEL_NAME=Qwen/Qwen2-VL-2B-Instruct
 ```
 
 ## Development
